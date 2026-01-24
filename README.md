@@ -6,7 +6,6 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false 
 
 local OLD_POS = UDim2.new(0.5, -75, 0.8, 0)
-local SHIFTED_POS = UDim2.new(0.5, -75, 0.8, 0) -- سيبقى في المنتصف والأزرار حوله
 
 -- الزر الرئيسي (ON/OFF)
 local mainButton = Instance.new("TextButton")
@@ -43,7 +42,7 @@ removeButton.TextSize = 25
 removeButton.Visible = false
 removeButton.Parent = screenGui
 
--- زر (X) لحذف الواجهة
+-- زر (X) لحذف الواجهة والكل
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 25, 0, 25)
 closeButton.Position = UDim2.new(0.5, 110, 0.74, 0) 
@@ -69,7 +68,7 @@ addCorner(closeButton)
 local runService = game:GetService("RunService")
 local active = false
 local currentPlatform = nil
-local history = {} -- جدول لحفظ المنصات الثابتة فقط
+local history = {} -- المنصات المثبتة
 local Y_OFFSET = -3.5 
 local lastFloorY = 0
 
@@ -99,30 +98,33 @@ mainButton.MouseButton1Click:Connect(function()
     else
         mainButton.Text = "تفعيل المنصة: OFF"
         mainButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        -- نغلق الأزرار الجانبية لكن لا نحذف الـ history
         addButton.Visible = false
         removeButton.Visible = false
-        if currentPlatform then currentPlatform:Destroy() end
-        for _, p in pairs(history) do p:Destroy() end
-        history = {}
-        active = false
+        if currentPlatform then 
+            currentPlatform:Destroy() 
+            currentPlatform = nil
+        end
     end
 end)
 
 addButton.MouseButton1Click:Connect(function()
     if active and currentPlatform then
-        currentPlatform.Color = Color3.fromRGB(150, 150, 150) -- تمييز المنصة القديمة
-        table.insert(history, currentPlatform) -- إضافة المنصة القديمة للتاريخ
+        currentPlatform.Color = Color3.fromRGB(150, 150, 150) 
+        currentPlatform.Transparency = 0.5 -- جعلها أقل وضوحاً لتمييزها عن النشطة
+        table.insert(history, currentPlatform) 
         currentPlatform = createPlatform() -- إنشاء منصة جديدة تتبعك
     end
 end)
 
 removeButton.MouseButton1Click:Connect(function()
     if #history > 0 then
-        local lastPart = table.remove(history, #history) -- سحب آخر بارت من الجدول
-        if lastPart then lastPart:Destroy() end -- حذفه
+        local lastPart = table.remove(history, #history)
+        if lastPart then lastPart:Destroy() end
     end
 end)
 
+-- زر الإغلاق النهائي (يحذف كل شيء)
 closeButton.MouseButton1Click:Connect(function()
     if currentPlatform then currentPlatform:Destroy() end
     for _, p in pairs(history) do p:Destroy() end
@@ -135,9 +137,9 @@ runService.RenderStepped:Connect(function()
         if character and character:FindFirstChild("HumanoidRootPart") then
             local hrp = character.HumanoidRootPart
             local currentHeight = hrp.Position.Y + Y_OFFSET
-            if currentHeight > lastFloorY + 0.5 then 
-                lastFloorY = currentHeight
-            elseif currentHeight < lastFloorY - 1.5 then
+            
+            -- نظام ذكي لتثبيت الارتفاع عند القفز البسيط
+            if currentHeight > lastFloorY + 0.5 or currentHeight < lastFloorY - 1.5 then
                 lastFloorY = currentHeight
             end
             currentPlatform.Position = Vector3.new(hrp.Position.X, lastFloorY, hrp.Position.Z)
