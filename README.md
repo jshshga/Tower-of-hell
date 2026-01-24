@@ -1,80 +1,106 @@
--- إنشاء الواجهة (GUI) برمجياً لضمان ظهورها
+-- إنشاء الواجهة (GUI)
 local player = game.Players.LocalPlayer
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PlatformGui"
+screenGui.Name = "PlatformGui_Final"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 150, 0, 50)
-button.Position = UDim2.new(0.5, -75, 0.8, 0) -- يظهر في أسفل منتصف الشاشة
-button.Text = "تفعيل المنصة: OFF"
-button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 20
-button.Parent = screenGui
+local OLD_POS = UDim2.new(0.5, -75, 0.8, 0)
+local SHIFTED_POS = UDim2.new(0.5, -110, 0.8, 0)
 
--- إضافة حواف دائرية للزر
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = button
+local mainButton = Instance.new("TextButton")
+mainButton.Size = UDim2.new(0, 150, 0, 50)
+mainButton.Position = OLD_POS
+mainButton.Text = "تفعيل المنصة: OFF"
+mainButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+mainButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+mainButton.Font = Enum.Font.SourceSansBold
+mainButton.TextSize = 18
+mainButton.Parent = screenGui
 
--- برمجة المنصة
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = nil
-local hrp = nil
+local addButton = Instance.new("TextButton")
+addButton.Size = UDim2.new(0, 50, 0, 50)
+addButton.Position = UDim2.new(0.5, 50, 0.8, 0)
+addButton.Text = "+"
+addButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+addButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+addButton.Font = Enum.Font.SourceSansBold
+addButton.TextSize = 30
+addButton.Visible = false
+addButton.Parent = screenGui
+
+local corner1 = Instance.new("UICorner")
+corner1.CornerRadius = UDim.new(0, 10)
+corner1.Parent = mainButton
+local corner2 = Instance.new("UICorner")
+corner2.CornerRadius = UDim.new(0, 10)
+corner2.Parent = addButton
+
+-- البرمجة المعدلة لمنع الرفع التلقائي
 local runService = game:GetService("RunService")
-
 local active = false
-local platform = nil
+local currentPlatform = nil
+local Y_OFFSET = -3.5 
+local lastFloorY = 0 -- لتخزين آخر ارتفاع ثابت
 
--- إعدادات المنصة
-local PLATFORM_SIZE = Vector3.new(15, 1, 15)
-local Y_OFFSET = -3.5
+local function createPlatform()
+    local p = Instance.new("Part")
+    p.Size = Vector3.new(15, 1, 15)
+    p.Anchored = true
+    p.CanCollide = true
+    p.Material = Enum.Material.Neon
+    p.Color = Color3.fromRGB(255, 255, 255)
+    p.Transparency = 0.3
+    p.Parent = workspace
+    return p
+end
 
-button.MouseButton1Click:Connect(function()
-	active = not active
-	character = player.Character
-	if character then
-		humanoid = character:FindFirstChild("Humanoid")
-		hrp = character:FindFirstChild("HumanoidRootPart")
-	end
+mainButton.MouseButton1Click:Connect(function()
+    active = not active
+    if active then
+        mainButton.Text = "تفعيل المنصة: ON"
+        mainButton.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        mainButton.Position = SHIFTED_POS
+        addButton.Visible = true
+        currentPlatform = createPlatform()
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            lastFloorY = player.Character.HumanoidRootPart.Position.Y + Y_OFFSET
+        end
+    else
+        mainButton.Text = "تفعيل المنصة: OFF"
+        mainButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        mainButton.Position = OLD_POS
+        addButton.Visible = false
+        if currentPlatform then currentPlatform:Destroy() currentPlatform = nil end
+    end
+end)
 
-	if active then
-		button.Text = "تفعيل المنصة: ON"
-		button.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-		
-		-- إنشاء الـ Part
-		platform = Instance.new("Part")
-		platform.Size = PLATFORM_SIZE
-		platform.Anchored = true
-		platform.CanCollide = true
-		platform.Material = Enum.Material.Neon
-		platform.Color = Color3.fromRGB(255, 255, 255)
-		platform.Transparency = 0.2
-		platform.Parent = workspace
-	else
-		button.Text = "تفعيل المنصة: OFF"
-		button.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-		if platform then
-			platform:Destroy()
-			platform = nil
-		end
-	end
+addButton.MouseButton1Click:Connect(function()
+    if active and currentPlatform then
+        currentPlatform.Transparency = 0.1
+        currentPlatform.Color = Color3.fromRGB(150, 150, 150)
+        currentPlatform = createPlatform()
+    end
 end)
 
 runService.RenderStepped:Connect(function()
-	if active and platform and character and character:FindFirstChild("HumanoidRootPart") then
-		local currentHRP = character.HumanoidRootPart
-		local currentHumanoid = character:FindFirstChild("Humanoid")
-		
-		local targetPos = currentHRP.Position + Vector3.new(0, Y_OFFSET, 0)
-		
-		-- سرعة الرفع عند القفز
-		if currentHumanoid and (currentHumanoid:GetState() == Enum.HumanoidStateType.Jumping or currentHumanoid:GetState() == Enum.HumanoidStateType.Freefall) then
-			platform.CFrame = platform.CFrame:Lerp(CFrame.new(currentHRP.Position + Vector3.new(0, Y_OFFSET + 0.6, 0)), 0.3)
-		else
-			platform.CFrame = CFrame.new(targetPos)
-		end
-	end
+    if active and currentPlatform then
+        local character = player.Character
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character and character:FindFirstChild("Humanoid")
+        
+        if hrp and humanoid then
+            local currentHeight = hrp.Position.Y + Y_OFFSET
+            
+            -- إذا كان اللاعب يقفز أو يطير للأعلى، نحدث الارتفاع
+            if currentHeight > lastFloorY + 0.5 then 
+                lastFloorY = currentHeight
+            -- إذا سقط اللاعب أسفل المنصة، نعيد ضبط الارتفاع لتحته مباشرة
+            elseif currentHeight < lastFloorY - 1 then
+                lastFloorY = currentHeight
+            end
+            
+            -- تحديث الموقع مع تثبيت الارتفاع (Y) ومنع الاهتزاز
+            currentPlatform.Position = Vector3.new(hrp.Position.X, lastFloorY, hrp.Position.Z)
+        end
+    end
 end)
