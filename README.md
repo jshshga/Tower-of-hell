@@ -70,6 +70,7 @@ screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
 
 local active, noclipActive, checkpointActive = false, false, false
+local noclipStates = {}
 local currentPlatform = nil
 local fixedY = 0 
 local history, deletedHistory = {}, {}
@@ -138,17 +139,35 @@ remBtn.Text = "-"; remBtn.TextSize = 35; remBtn.Visible = false;
 remBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); remBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 remBtn.Parent = mainFrame; Instance.new("UICorner", remBtn).CornerRadius = UDim.new(0, 8)
 
+-- noclip toggle
 noclBtn.MouseButton1Click:Connect(function()
     noclipActive = not noclipActive
     noclBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
-    if not noclipActive then
-        local char = player.Character
+
+    local char = player.Character
+    if noclipActive then
+        noclipStates = {}
         if char then
-            if char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.CanCollide = true end
+            for _, p in pairs(char:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    noclipStates[p] = p.CanCollide
+                    p.CanCollide = false
+                end
+            end
         end
+    else
+        if char then
+            for part, prevCanCollide in pairs(noclipStates) do
+                if part and part.Parent then
+                    part.CanCollide = (prevCanCollide == nil) and true or prevCanCollide
+                end
+            end
+        end
+        noclipStates = {}
     end
 end)
 
+-- checkpoint toggle
 cpBtn.MouseButton1Click:Connect(function()
     checkpointActive = not checkpointActive
     cpBtn.BackgroundColor3 = checkpointActive and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
@@ -176,21 +195,16 @@ mainButton.MouseButton1Click:Connect(function()
     elseif currentPlatform then currentPlatform:Destroy(); currentPlatform = nil end
 end)
 
--- نظام الثبات المطلق: تتبع الارتفاع فقط في حالة "صعود" حقيقي
+-- follow platform
 RunService.RenderStepped:Connect(function()
     if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = player.Character.HumanoidRootPart
-        local hum = player.Character:FindFirstChildOfClass("Humanoid")
         
         if active and currentPlatform then
             local currentY = hrp.Position.Y + Y_OFFSET
-            
-            -- لا يرتفع إلا إذا كانت سرعة الصعود عالية (قفز) وتجاوز الارتفاع القديم
             if hrp.Velocity.Y > 10 then 
                 fixedY = currentY
             end
-            
-            -- الموقع الأفقي يتبعك دائماً، لكن الارتفاع (fixedY) لا يتغير إلا بالقفزة
             currentPlatform.Position = Vector3.new(hrp.Position.X, fixedY, hrp.Position.Z)
         end
         
@@ -200,21 +214,46 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- add platform
 addBtn.MouseButton1Click:Connect(function()
     if active and currentPlatform then
         local p = currentPlatform:Clone(); p.Parent = workspace; p.Color = Color3.fromRGB(180, 180, 180); p.Transparency = 0.5
         table.insert(history, p)
     end
 end)
+
+-- remove last platform (send to trash)
 remBtn.MouseButton1Click:Connect(function()
-    if #history > 0 then local p = table.remove(history, #history); p.Parent = nil; table.insert(deletedHistory, p) end
+    if #history > 0 then
+        local p = table.remove(history, #history)
+        if p then
+            p.Parent = nil
+            table.insert(deletedHistory, p)
+        end
+    end
 end)
+
+-- clear all platforms (send all to trash)
 clearBtn.MouseButton1Click:Connect(function()
-    for _, p in pairs(history) do p.Parent = nil; table.insert(deletedHistory, p) end
-    history = {}
+    for i = #history, 1, -1 do
+        local p = table.remove(history, i)
+        if p then
+            p.Parent = nil
+            table.insert(deletedHistory, p)
+        end
+    end
 end)
+
+-- restore all from trash
 restBtn.MouseButton1Click:Connect(function()
-    for i = #deletedHistory, 1, -1 do local p = table.remove(deletedHistory, i); p.Parent = workspace; table.insert(history, p) end
+    for i = #deletedHistory, 1, -1 do
+        local p = table.remove(deletedHistory, i)
+        if p then
+            p.Parent = workspace
+            table.insert(history, p)
+        end
+    end
 end)
+
 closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; openButton.Visible = true end)
 openButton.MouseButton1Click:Connect(function() mainFrame.Visible = true; openButton.Visible = false end)
