@@ -28,7 +28,7 @@ welcomeLabel.Text = "اتمنى يعجبك سكربت و هاذا اسم حسا�
 welcomeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 welcomeLabel.BackgroundTransparency = 1
 welcomeLabel.Font = Enum.Font.GothamBold
-welcomeLabel.TextSize = 22
+welcomeLabel.TextSize = 19
 welcomeLabel.TextWrapped = true
 welcomeLabel.Parent = welcomeFrame
 
