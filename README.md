@@ -4,7 +4,7 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
 -----------------------------------------------------------
--- [1] واجهة النسخ (بيضوية + نيون + خط كبير)
+-- [1] واجهة النسخ (الأصلية)
 -----------------------------------------------------------
 local introGui = Instance.new("ScreenGui")
 introGui.Name = "IntroWelcome"
@@ -47,22 +47,22 @@ welcomeFrame:TweenSizeAndPosition(UDim2.new(0, 380, 0, 200), UDim2.new(0.5, -190
 spawn(function()
     while welcomeFrame.Parent do
         TweenService:Create(uiStroke, TweenInfo.new(1), {Color = Color3.fromRGB(255, 0, 255)}):Play()
-        wait(1)
+        task.wait(1)
         TweenService:Create(uiStroke, TweenInfo.new(1), {Color = Color3.fromRGB(0, 170, 255)}):Play()
-        wait(1)
+        task.wait(1)
     end
 end)
 
 copyBtn.MouseButton1Click:Connect(function()
     if setclipboard then setclipboard("auigegif") end
     copyBtn.Text = "تم النسخ! ✅"
-    wait(1)
+    task.wait(1)
     copyBtn.Text = "نسخ الحساب"
 end)
 task.delay(5, function() if introGui then introGui:Destroy() end end)
 
 -----------------------------------------------------------
--- [2] سكربت المنصة (مع استرجاع ألوان الأزرار الأصلية)
+-- [2] سكربت المنصة (تتبع القفز الحقيقي فقط)
 -----------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "Custom_Platform_System"
@@ -71,8 +71,9 @@ screenGui.ResetOnSpawn = false
 
 local active, noclipActive, checkpointActive = false, false, false
 local currentPlatform = nil
+local fixedY = 0 
 local history, deletedHistory = {}, {}
-local Y_OFFSET = -3.5
+local Y_OFFSET = -3.45 
 local checkPointPos, cpMarker = nil, nil 
 
 local mainFrame = Instance.new("Frame")
@@ -125,26 +126,18 @@ local restBtn = createTopBtn("↩️", UDim2.new(1, -116, 0, -42), Color3.fromRG
 local noclBtn = createTopBtn("👻", UDim2.new(1, -156, 0, -42), Color3.fromRGB(200, 0, 0))
 local cpBtn = createTopBtn("📍", UDim2.new(1, -196, 0, -42), Color3.fromRGB(200, 0, 0))
 
--- أزرار + و - (رجعت اللون 40, 40, 40)
 local addBtn = Instance.new("TextButton")
-addBtn.Size = UDim2.new(0, 50, 0, 50)
-addBtn.Position = UDim2.new(1, 10, 0, 2)
+addBtn.Size = UDim2.new(0, 50, 0, 50); addBtn.Position = UDim2.new(1, 10, 0, 2)
 addBtn.Text = "+"; addBtn.TextSize = 30; addBtn.Visible = false; 
-addBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-addBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-addBtn.Parent = mainFrame
-Instance.new("UICorner", addBtn).CornerRadius = UDim.new(0, 8)
+addBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); addBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+addBtn.Parent = mainFrame; Instance.new("UICorner", addBtn).CornerRadius = UDim.new(0, 8)
 
 local remBtn = Instance.new("TextButton")
-remBtn.Size = UDim2.new(0, 50, 0, 50)
-remBtn.Position = UDim2.new(0, -60, 0, 2)
+remBtn.Size = UDim2.new(0, 50, 0, 50); remBtn.Position = UDim2.new(0, -60, 0, 2)
 remBtn.Text = "-"; remBtn.TextSize = 35; remBtn.Visible = false; 
-remBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-remBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-remBtn.Parent = mainFrame
-Instance.new("UICorner", remBtn).CornerRadius = UDim.new(0, 8)
+remBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); remBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+remBtn.Parent = mainFrame; Instance.new("UICorner", remBtn).CornerRadius = UDim.new(0, 8)
 
--- منطق النوكلب (استرجاع التصادم)
 noclBtn.MouseButton1Click:Connect(function()
     noclipActive = not noclipActive
     noclBtn.BackgroundColor3 = noclipActive and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
@@ -152,8 +145,6 @@ noclBtn.MouseButton1Click:Connect(function()
         local char = player.Character
         if char then
             if char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.CanCollide = true end
-            if char:FindFirstChild("UpperTorso") then char.UpperTorso.CanCollide = true
-            elseif char:FindFirstChild("Torso") then char.Torso.CanCollide = true end
         end
     end
 end)
@@ -173,22 +164,40 @@ cpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-player.CharacterAdded:Connect(function(char)
-    if checkpointActive and checkPointPos then
-        local hrp = char:WaitForChild("HumanoidRootPart", 5)
-        if hrp then task.wait(0.2) hrp.CFrame = checkPointPos end
-    end
-end)
-
 mainButton.MouseButton1Click:Connect(function()
     active = not active
     mainButton.Text = active and "المنصة: ON" or "المنصة: OFF"
     mainButton.BackgroundColor3 = active and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
     addBtn.Visible, remBtn.Visible = active, active
-    if active then
+    if active and player.Character then
+        fixedY = player.Character.HumanoidRootPart.Position.Y + Y_OFFSET
         currentPlatform = Instance.new("Part", workspace)
-        currentPlatform.Size = Vector3.new(15, 1, 15); currentPlatform.Anchored = true; currentPlatform.Material = "Neon"; currentPlatform.Transparency = 0.3
+        currentPlatform.Size = Vector3.new(15, 0.8, 15); currentPlatform.Anchored = true; currentPlatform.Material = "Neon"; currentPlatform.Transparency = 0.3
     elseif currentPlatform then currentPlatform:Destroy(); currentPlatform = nil end
+end)
+
+-- نظام الثبات المطلق: تتبع الارتفاع فقط في حالة "صعود" حقيقي
+RunService.RenderStepped:Connect(function()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = player.Character.HumanoidRootPart
+        local hum = player.Character:FindFirstChildOfClass("Humanoid")
+        
+        if active and currentPlatform then
+            local currentY = hrp.Position.Y + Y_OFFSET
+            
+            -- لا يرتفع إلا إذا كانت سرعة الصعود عالية (قفز) وتجاوز الارتفاع القديم
+            if hrp.Velocity.Y > 10 then 
+                fixedY = currentY
+            end
+            
+            -- الموقع الأفقي يتبعك دائماً، لكن الارتفاع (fixedY) لا يتغير إلا بالقفزة
+            currentPlatform.Position = Vector3.new(hrp.Position.X, fixedY, hrp.Position.Z)
+        end
+        
+        if noclipActive then
+            for _, p in pairs(player.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
+        end
+    end
 end)
 
 addBtn.MouseButton1Click:Connect(function()
@@ -197,28 +206,15 @@ addBtn.MouseButton1Click:Connect(function()
         table.insert(history, p)
     end
 end)
-
 remBtn.MouseButton1Click:Connect(function()
     if #history > 0 then local p = table.remove(history, #history); p.Parent = nil; table.insert(deletedHistory, p) end
 end)
-
 clearBtn.MouseButton1Click:Connect(function()
     for _, p in pairs(history) do p.Parent = nil; table.insert(deletedHistory, p) end
     history = {}
 end)
-
 restBtn.MouseButton1Click:Connect(function()
     for i = #deletedHistory, 1, -1 do local p = table.remove(deletedHistory, i); p.Parent = workspace; table.insert(history, p) end
 end)
-
 closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; openButton.Visible = true end)
 openButton.MouseButton1Click:Connect(function() mainFrame.Visible = true; openButton.Visible = false end)
-
-RunService.Stepped:Connect(function()
-    if player.Character then
-        if active and currentPlatform then currentPlatform.Position = player.Character.HumanoidRootPart.Position + Vector3.new(0, Y_OFFSET, 0) end
-        if noclipActive then
-            for _, p in pairs(player.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
-        end
-    end
-end)
