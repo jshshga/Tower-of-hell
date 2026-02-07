@@ -76,6 +76,7 @@ local fixedY = 0
 local history, deletedHistory = {}, {}
 local Y_OFFSET = -3.45 
 local checkPointPos, cpMarker = nil, nil 
+local clearAllMode = false  -- متغير جديد لتحديد وضع الزبالة
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 180, 0, 55) 
@@ -170,16 +171,50 @@ end)
 -- checkpoint toggle
 cpBtn.MouseButton1Click:Connect(function()
     checkpointActive = not checkpointActive
-    cpBtn.BackgroundColor3 = checkpointActive and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
-    if checkpointActive and player.Character then
-        checkPointPos = player.Character.HumanoidRootPart.CFrame
-        if cpMarker then cpMarker:Destroy() end
-        cpMarker = Instance.new("Part", workspace)
-        cpMarker.Size = Vector3.new(4, 0.4, 4); cpMarker.CFrame = checkPointPos * CFrame.new(0, -3.0, 0)
-        cpMarker.Anchored = true; cpMarker.CanCollide = false; cpMarker.Material = "Neon"; cpMarker.Color = Color3.fromRGB(0, 255, 255); cpMarker.Transparency = 0.4
+    
+    if checkpointActive then
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local success, err = pcall(function()
+                checkPointPos = player.Character.HumanoidRootPart.CFrame
+            end)
+            
+            if success then
+                cpBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+                
+                if cpMarker then 
+                    cpMarker:Destroy() 
+                    cpMarker = nil
+                end
+                
+                cpMarker = Instance.new("Part")
+                cpMarker.Size = Vector3.new(4, 0.4, 4)
+                cpMarker.CFrame = checkPointPos * CFrame.new(0, -3.0, 0)
+                cpMarker.Anchored = true
+                cpMarker.CanCollide = false
+                cpMarker.Material = "Neon"
+                cpMarker.Color = Color3.fromRGB(0, 255, 255)
+                cpMarker.Transparency = 0.4
+                cpMarker.Name = "CheckpointMarker"
+                cpMarker.Parent = workspace
+                
+                print("✅ تم حفظ الشيك بوينت بنجاح!")
+            else
+                checkpointActive = false
+                cpBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+                warn("⚠️ حدث خطأ في حفظ الشيك بوينت:", err)
+            end
+        else
+            checkpointActive = false
+            cpBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+            warn("⚠️ لا يوجد شخصية أو جزء HumanoidRootPart")
+        end
     else
+        cpBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
         checkPointPos = nil
-        if cpMarker then cpMarker:Destroy(); cpMarker = nil end
+        if cpMarker then 
+            cpMarker:Destroy() 
+            cpMarker = nil
+        end
     end
 end)
 
@@ -219,6 +254,7 @@ addBtn.MouseButton1Click:Connect(function()
     if active and currentPlatform then
         local p = currentPlatform:Clone(); p.Parent = workspace; p.Color = Color3.fromRGB(180, 180, 180); p.Transparency = 0.5
         table.insert(history, p)
+        print("تمت إضافة منصة جديدة. العدد الكلي: " .. #history)
     end
 end)
 
@@ -229,31 +265,88 @@ remBtn.MouseButton1Click:Connect(function()
         if p then
             p.Parent = nil
             table.insert(deletedHistory, p)
+            clearAllMode = false  -- إلغاء وضع الزبالة
+            print("تم حذف منصة. المتبقي: " .. #history .. " | في سلة المهملات: " .. #deletedHistory)
         end
+    else
+        print("⚠️ لا توجد منصات لحذفها")
     end
 end)
 
 -- clear all platforms (send all to trash)
 clearBtn.MouseButton1Click:Connect(function()
-    for i = #history, 1, -1 do
-        local p = table.remove(history, i)
-        if p then
-            p.Parent = nil
-            table.insert(deletedHistory, p)
+    if #history > 0 then
+        print("🗑️ إرسال جميع المنصات إلى سلة المهملات...")
+        for i = #history, 1, -1 do
+            local p = table.remove(history, i)
+            if p then
+                p.Parent = nil
+                table.insert(deletedHistory, p)
+            end
         end
+        clearAllMode = true  -- تفعيل وضع الزبالة
+        print("✅ تم إرسال " .. #deletedHistory .. " منصة إلى سلة المهملات")
+    else
+        print("⚠️ لا توجد منصات لتنظيفها")
     end
 end)
 
--- restore all from trash
+-- restore platforms (المعدل)
 restBtn.MouseButton1Click:Connect(function()
-    for i = #deletedHistory, 1, -1 do
-        local p = table.remove(deletedHistory, i)
-        if p then
-            p.Parent = workspace
-            table.insert(history, p)
+    if #deletedHistory > 0 then
+        if clearAllMode then
+            -- وضع الزبالة: إرجاع جميع المنصات مرة واحدة
+            print("↩️ استرجاع جميع المنصات من الزبالة...")
+            for i = #deletedHistory, 1, -1 do
+                local p = table.remove(deletedHistory, i)
+                if p then
+                    p.Parent = workspace
+                    table.insert(history, p)
+                end
+            end
+            clearAllMode = false  -- إلغاء وضع الزبالة بعد الاسترجاع
+            print("✅ تم استرجاع جميع المنصات. العدد الكلي: " .. #history)
+        else
+            -- الوضع العادي: إرجاع منصة واحدة فقط
+            local p = table.remove(deletedHistory, #deletedHistory)
+            if p then
+                p.Parent = workspace
+                table.insert(history, p)
+                print("↩️ تم استرجاع منصة واحدة. المتبقي في السلة: " .. #deletedHistory .. " | العدد الكلي: " .. #history)
+            end
         end
+    else
+        print("⚠️ سلة المهملات فارغة")
     end
 end)
 
 closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; openButton.Visible = true end)
 openButton.MouseButton1Click:Connect(function() mainFrame.Visible = true; openButton.Visible = false end)
+
+-----------------------------------------------------------
+-- [3] نظام إعادة الظهور الآمن عند الموت
+-----------------------------------------------------------
+local function setupRespawnHandler()
+    player.CharacterAdded:Connect(function(character)
+        task.wait(0.5)  -- انتظر حتى يكون الجزء جاهزًا
+        
+        if checkpointActive and checkPointPos then
+            local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 3)
+            if humanoidRootPart then
+                local success, err = pcall(function()
+                    humanoidRootPart.CFrame = checkPointPos
+                    print("✅ تم التحويل إلى الشيك بوينت!")
+                end)
+                
+                if not success then
+                    warn("⚠️ لم يتم التحويل إلى الشيك بوينت:", err)
+                end
+            end
+        end
+    end)
+end
+
+-- تفعيل نظام إعادة الظهور
+setupRespawnHandler()
+
+print("✅ تم تحميل سكربت المنصة بنجاح!")
