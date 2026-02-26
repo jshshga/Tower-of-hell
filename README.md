@@ -8,7 +8,7 @@ local RunService = game:GetService("RunService")
 
 local BLACKLIST = {  
     "Waleedking70", "JJFH23456771", "omarbkp", 
-    "fastma_storage", "No_Louay", "mlk123456771", "fling_2009", "fahad_moen3", "CmdBarDestroyer",
+    "fastma_storage", "No_Louay", "mlk123456771", "fling_2009", "fahad_moen3", "auigegif",
     ""
 }
 
