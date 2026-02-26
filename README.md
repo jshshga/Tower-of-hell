@@ -1,11 +1,142 @@
-local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+--=========================================================
+-- [0] BLACKLIST (NEON RAINBOW WARNING) - مدموج داخل السكربت
+--=========================================================
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
------------------------------------------------------------
+local BLACKLIST = {  
+    "Waleedking70", "JJFH23456771", "omarbkp", 
+    "fastma_storage", "No_Louay", "mlk123456771", "fling_2009", "fahad_moen3", "CmdBarDestroyer",
+    ""
+}
+
+local function IsPlayerBlacklisted(playerName)
+    local nameLower = playerName:lower()
+    for _, blacklistedName in ipairs(BLACKLIST) do
+        if nameLower == blacklistedName:lower() then
+            return true
+        end
+    end
+    return false
+end
+
+local function ShowBlacklistNeonAndKick()
+    local playerGui = plr:WaitForChild("PlayerGui")
+
+    local warningGui = Instance.new("ScreenGui")
+    warningGui.Name = "BLACKLIST_GUI"
+    warningGui.Parent = playerGui
+    warningGui.ResetOnSpawn = false
+
+    local frame = Instance.new("Frame")
+    frame.Parent = warningGui
+    frame.Size = UDim2.new(0, 0, 0, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame.BackgroundColor3 = Color3.fromRGB(10, 10, 14)
+    frame.ClipsDescendants = true
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 26)
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Parent = frame
+    stroke.Thickness = 6
+    stroke.Color = Color3.fromRGB(0, 255, 255)
+
+    local grad = Instance.new("UIGradient")
+    grad.Parent = stroke
+    grad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+        ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 160, 0)),
+        ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 90)),
+        ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.83, Color3.fromRGB(60, 80, 255)),
+        ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 255)),
+    }
+
+    -- Glow fake (طبقتين Frame شفافة)
+    local glow1 = Instance.new("Frame", frame)
+    glow1.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+    glow1.BackgroundTransparency = 0.85
+    glow1.Size = UDim2.new(1, 40, 1, 40)
+    glow1.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glow1.AnchorPoint = Vector2.new(0.5, 0.5)
+    Instance.new("UICorner", glow1).CornerRadius = UDim.new(0, 34)
+
+    local glow2 = Instance.new("Frame", frame)
+    glow2.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
+    glow2.BackgroundTransparency = 0.9
+    glow2.Size = UDim2.new(1, 80, 1, 80)
+    glow2.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glow2.AnchorPoint = Vector2.new(0.5, 0.5)
+    Instance.new("UICorner", glow2).CornerRadius = UDim.new(0, 46)
+
+    local title = Instance.new("TextLabel")
+    title.Parent = frame
+    title.BackgroundTransparency = 1
+    title.Size = UDim2.new(1, -24, 0, 70)
+    title.Position = UDim2.new(0, 12, 0, 16)
+    title.Font = Enum.Font.GothamBlack
+    title.TextScaled = true
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Text = "⚠️ BLACKLIST DETECTED ⚠️"
+
+    local sub = Instance.new("TextLabel")
+    sub.Parent = frame
+    sub.BackgroundTransparency = 1
+    sub.Size = UDim2.new(1, -24, 0, 55)
+    sub.Position = UDim2.new(0, 12, 0, 92)
+    sub.Font = Enum.Font.GothamBold
+    sub.TextScaled = true
+    sub.TextColor3 = Color3.fromRGB(220, 220, 220)
+    sub.Text = "Access Denied"
+
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Parent = frame
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Size = UDim2.new(1, -24, 0, 35)
+    nameLbl.Position = UDim2.new(0, 12, 0, 150)
+    nameLbl.Font = Enum.Font.Gotham
+    nameLbl.TextScaled = true
+    nameLbl.TextColor3 = Color3.fromRGB(180, 180, 180)
+    nameLbl.Text = "User: " .. plr.Name
+
+    -- دخول Bounce
+    frame:TweenSize(UDim2.new(0, 520, 0, 220), "Out", "Back", 0.55, true)
+
+    -- رينبو + نبض + لمعان
+    task.spawn(function()
+        local t0 = tick()
+        while frame.Parent do
+            local t = tick() - t0
+            grad.Rotation = (t * 120) % 360
+            stroke.Thickness = 6 + math.sin(t * 6) * 2
+
+            local pulse = (math.sin(t * 4) + 1) / 2
+            glow1.BackgroundTransparency = 0.90 - (pulse * 0.12)
+            glow2.BackgroundTransparency = 0.94 - (pulse * 0.08)
+
+            task.wait()
+        end
+    end)
+
+    task.wait(4)
+    plr:Kick("🚫 دز")
+end
+
+if IsPlayerBlacklisted(plr.Name) then
+    ShowBlacklistNeonAndKick()
+    return
+end
+
+--=========================================================
 -- [1] واجهة النسخ (الأصلية)
------------------------------------------------------------
+--=========================================================
+local player = plr
+local playerGui = player:WaitForChild("PlayerGui")
+
 local introGui = Instance.new("ScreenGui")
 introGui.Name = "IntroWelcome"
 introGui.Parent = playerGui
@@ -44,7 +175,7 @@ copyBtn.Parent = welcomeFrame
 Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(1, 0)
 
 welcomeFrame:TweenSizeAndPosition(UDim2.new(0, 380, 0, 200), UDim2.new(0.5, -190, 0.5, -100), "Out", "Back", 0.5)
-spawn(function()
+task.spawn(function()
     while welcomeFrame.Parent do
         TweenService:Create(uiStroke, TweenInfo.new(1), {Color = Color3.fromRGB(255, 0, 255)}):Play()
         task.wait(1)
@@ -61,9 +192,9 @@ copyBtn.MouseButton1Click:Connect(function()
 end)
 task.delay(5, function() if introGui then introGui:Destroy() end end)
 
------------------------------------------------------------
+--=========================================================
 -- [2] سكربت المنصة (تتبع القفز الحقيقي فقط)
------------------------------------------------------------
+--=========================================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "Custom_Platform_System"
 screenGui.Parent = playerGui
@@ -76,7 +207,7 @@ local fixedY = 0
 local history, deletedHistory = {}, {}
 local Y_OFFSET = -3.45 
 local checkPointPos, cpMarker = nil, nil 
-local clearAllMode = false  -- متغير جديد لتحديد وضع الزبالة
+local clearAllMode = false
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 180, 0, 55) 
@@ -191,7 +322,7 @@ cpBtn.MouseButton1Click:Connect(function()
                 cpMarker.CFrame = checkPointPos * CFrame.new(0, -3.0, 0)
                 cpMarker.Anchored = true
                 cpMarker.CanCollide = false
-                cpMarker.Material = "Neon"
+                cpMarker.Material = Enum.Material.Neon
                 cpMarker.Color = Color3.fromRGB(0, 255, 255)
                 cpMarker.Transparency = 0.4
                 cpMarker.Name = "CheckpointMarker"
@@ -223,11 +354,18 @@ mainButton.MouseButton1Click:Connect(function()
     mainButton.Text = active and "المنصة: ON" or "المنصة: OFF"
     mainButton.BackgroundColor3 = active and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
     addBtn.Visible, remBtn.Visible = active, active
-    if active and player.Character then
+    if active and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         fixedY = player.Character.HumanoidRootPart.Position.Y + Y_OFFSET
         currentPlatform = Instance.new("Part", workspace)
-        currentPlatform.Size = Vector3.new(15, 0.8, 15); currentPlatform.Anchored = true; currentPlatform.Material = "Neon"; currentPlatform.Transparency = 0.3
-    elseif currentPlatform then currentPlatform:Destroy(); currentPlatform = nil end
+        currentPlatform.Size = Vector3.new(15, 0.8, 15)
+        currentPlatform.Anchored = true
+        currentPlatform.Material = Enum.Material.Neon
+        currentPlatform.Transparency = 0.3
+        currentPlatform.Color = Color3.fromRGB(0, 255, 255)
+    elseif currentPlatform then
+        currentPlatform:Destroy()
+        currentPlatform = nil
+    end
 end)
 
 -- follow platform
@@ -244,7 +382,9 @@ RunService.RenderStepped:Connect(function()
         end
         
         if noclipActive then
-            for _, p in pairs(player.Character:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
+            for _, p in pairs(player.Character:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
         end
     end
 end)
@@ -252,7 +392,10 @@ end)
 -- add platform
 addBtn.MouseButton1Click:Connect(function()
     if active and currentPlatform then
-        local p = currentPlatform:Clone(); p.Parent = workspace; p.Color = Color3.fromRGB(180, 180, 180); p.Transparency = 0.5
+        local p = currentPlatform:Clone()
+        p.Parent = workspace
+        p.Color = Color3.fromRGB(180, 180, 180)
+        p.Transparency = 0.5
         table.insert(history, p)
         print("تمت إضافة منصة جديدة. العدد الكلي: " .. #history)
     end
@@ -265,7 +408,7 @@ remBtn.MouseButton1Click:Connect(function()
         if p then
             p.Parent = nil
             table.insert(deletedHistory, p)
-            clearAllMode = false  -- إلغاء وضع الزبالة
+            clearAllMode = false
             print("تم حذف منصة. المتبقي: " .. #history .. " | في سلة المهملات: " .. #deletedHistory)
         end
     else
@@ -284,18 +427,17 @@ clearBtn.MouseButton1Click:Connect(function()
                 table.insert(deletedHistory, p)
             end
         end
-        clearAllMode = true  -- تفعيل وضع الزبالة
+        clearAllMode = true
         print("✅ تم إرسال " .. #deletedHistory .. " منصة إلى سلة المهملات")
     else
         print("⚠️ لا توجد منصات لتنظيفها")
     end
 end)
 
--- restore platforms (المعدل)
+-- restore platforms
 restBtn.MouseButton1Click:Connect(function()
     if #deletedHistory > 0 then
         if clearAllMode then
-            -- وضع الزبالة: إرجاع جميع المنصات مرة واحدة
             print("↩️ استرجاع جميع المنصات من الزبالة...")
             for i = #deletedHistory, 1, -1 do
                 local p = table.remove(deletedHistory, i)
@@ -304,10 +446,9 @@ restBtn.MouseButton1Click:Connect(function()
                     table.insert(history, p)
                 end
             end
-            clearAllMode = false  -- إلغاء وضع الزبالة بعد الاسترجاع
+            clearAllMode = false
             print("✅ تم استرجاع جميع المنصات. العدد الكلي: " .. #history)
         else
-            -- الوضع العادي: إرجاع منصة واحدة فقط
             local p = table.remove(deletedHistory, #deletedHistory)
             if p then
                 p.Parent = workspace
@@ -323,13 +464,12 @@ end)
 closeBtn.MouseButton1Click:Connect(function() mainFrame.Visible = false; openButton.Visible = true end)
 openButton.MouseButton1Click:Connect(function() mainFrame.Visible = true; openButton.Visible = false end)
 
------------------------------------------------------------
+--=========================================================
 -- [3] نظام إعادة الظهور الآمن عند الموت
------------------------------------------------------------
+--=========================================================
 local function setupRespawnHandler()
     player.CharacterAdded:Connect(function(character)
-        task.wait(0.5)  -- انتظر حتى يكون الجزء جاهزًا
-        
+        task.wait(0.5)
         if checkpointActive and checkPointPos then
             local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 3)
             if humanoidRootPart then
@@ -337,7 +477,6 @@ local function setupRespawnHandler()
                     humanoidRootPart.CFrame = checkPointPos
                     print("✅ تم التحويل إلى الشيك بوينت!")
                 end)
-                
                 if not success then
                     warn("⚠️ لم يتم التحويل إلى الشيك بوينت:", err)
                 end
@@ -346,7 +485,5 @@ local function setupRespawnHandler()
     end)
 end
 
--- تفعيل نظام إعادة الظهور
 setupRespawnHandler()
-
 print("✅ تم تحميل سكربت المنصة بنجاح!")
